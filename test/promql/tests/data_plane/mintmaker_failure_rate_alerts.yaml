@@ -1,0 +1,62 @@
+rule_files:
+  - prometheus.mintmaker_failure_rate_alerts.yaml
+
+evaluation_interval: 10m
+
+tests:
+  - name: "no alert"
+    interval: 10m
+    input_series:
+      - series: 'mintmaker_launch_failure_ratio{source_cluster="stone-stg-p01"}'
+        values: '0.05x20'
+    alert_rule_test:    
+      - eval_time: 200m
+        alertname: MintMakerLaunchFailureRateAlert
+        exp_alerts:
+
+  - name: "failure ratio peak"
+    interval: 10m
+    input_series:
+      - series: 'mintmaker_launch_failure_ratio{source_cluster="stone-stg-m01"}'
+        values: '0.05x10 0.95 0.95 0.95 0.95'
+    alert_rule_test:    
+      - eval_time: 130m
+        alertname: MintMakerLaunchFailureRateAlert
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              slo: "true"
+              source_cluster: stone-stg-m01
+            exp_annotations:
+              summary: >-
+                MintMaker is having a high failure rate to launch pipelineruns
+              description: >-
+                MintMaker's rate of failures is unexpectedly high in for more than 30 minutes on cluster stone-stg-m01.
+              alert_team_handle: <!subteam^S078T8TMQP5> 
+              team: mintmaker
+              runbook_url: https://gitlab.cee.redhat.com/konflux/docs/sop/-/blob/main/mintmaker/faq.md
+              
+  - name: "no launch over 5h"
+    interval: 10m
+    input_series:
+      - series: 'mintmaker_launch_counts{category="failures", source_cluster="stone-stg-q01"}'
+        values: '0x30'
+      - series: 'mintmaker_launch_counts{category="successes", source_cluster="stone-stg-q01"}'
+        values: '0x30'
+    alert_rule_test:
+      - eval_time: 4h30m
+        alertname: MintMakerNoLaunchIn4h30min
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              slo: "true"
+              source_cluster: stone-stg-q01
+            exp_annotations:
+              summary: >-
+                MintMaker's has not launched pipelines for over 4h30min
+              description: >-
+                MintMaker's did not launch any pipelinerun failure for more than 4 hours and 30 minutes on cluster stone-stg-q01.
+              alert_team_handle: <!subteam^S078T8TMQP5> 
+              team: mintmaker
+              runbook_url: https://gitlab.cee.redhat.com/konflux/docs/sop/-/blob/main/mintmaker/faq.md
+              

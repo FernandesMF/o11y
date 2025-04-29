@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mintmaker-availability-slo-alerting-rules
+  labels:
+    tenant: rhtap
+    severity: critical
+    slo: "true"
+spec:
+  groups:
+  - name: mintmaker-availability-slo
+    interval: 10m
+    rules:
+
+    - alert: MintMakerLaunchFailureRateAlert
+      #TODO (after metric exporting is working) use actual labels that are being exported
+      expr: |
+        (
+          mintmaker_launch_failure_ratio - avg_over_time(mintmaker_launch_failure_ratio[2h]) 
+        ) >= clamp_min(stddev_over_time(mintmaker_launch_failure_ratio[2h]), 0.01)
+      for: 20m
+      labels:
+        severity: critical
+        slo: "true"
+      annotations:
+        summary: >-
+          MintMaker is having a high failure rate to launch pipelineruns
+        description: >-
+          MintMaker's rate of failures is unexpectedly high in for more than 30 minutes on cluster {{ $labels.source_cluster }}.
+        alert_team_handle: <!subteam^S078T8TMQP5> 
+        team: mintmaker
+        runbook_url: https://gitlab.cee.redhat.com/konflux/docs/sop/-/blob/main/mintmaker/faq.md
+
+    - alert: MintMakerNoLaunchIn4h30min
+      #TODO (after metric exporting is working) use actual labels that are being exported
+      expr: |
+        mintmaker_launch_counts{category="failures"} + ignoring(category) mintmaker_launch_counts{category="successes"} == 0
+      for: 4h30m
+      labels:
+        severity: critical
+        slo: "true"
+      annotations:
+        summary: >-
+          MintMaker's has not launched pipelines for over 4h30min
+        description: >-
+          MintMaker's did not launch any pipelinerun failure for more than 4 hours and 30 minutes on cluster {{ $labels.source_cluster }}.
+        alert_team_handle: <!subteam^S078T8TMQP5> 
+        team: mintmaker
+        runbook_url: https://gitlab.cee.redhat.com/konflux/docs/sop/-/blob/main/mintmaker/faq.md

@@ -1,0 +1,13 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mintmaker-availability-slo-alerting-rules
+  labels:
+    tenant: rhtap
+spec:
+  groups:
+    - name: mintmaker_launch_failure_ratio
+      interval: 1m
+      rules:  #TODO (after metric exporting is working) use actual labels that are being exported
+        - record: mintmaker_launch_failure_ratio
+          expr: mintmaker_launch_counts{category="failures"} / ignoring(category) (mintmaker_launch_counts{category="failures"} + ignoring(category) clamp_min(mintmaker_launch_counts{category="successes"}, 2) )

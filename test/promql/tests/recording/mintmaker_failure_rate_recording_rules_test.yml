@@ -1,0 +1,66 @@
+rule_files:  mintmaker_failure_rate_recording_rules.yaml
+  - mintmaker_failure_rate_recording_rules.yml
+
+evaluation_interval: 10m
+
+tests:
+  - interval: 10m
+    name: "failure rate calculation check"
+    input_series:  #TODO (after metric exporting is working) use actual labels that are being exported 
+      - series: "mintmaker_launch_counts{category='successes', source_cluster='stone-stg-m01'}"
+        values: "10 20 10 1 0"
+      - series: "mintmaker_launch_counts{category='failures', source_cluster='stone-stg-m01'}"
+        values: "10 5 40 2 0"
+    promql_expr_test:
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 0m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-m01'}
+            value: 0.5
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 10m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-m01'}
+            value: 0.2
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 20m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-m01'}
+            value: 0.8
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 30m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-m01'}
+            value: 0.5
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 40m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-m01'}
+            value: 0
+
+  - interval: 10m
+    name: "failure rate missing vals check"
+    input_series:  #TODO (after metric exporting is working) use actual labels that are being exported 
+      - series: "mintmaker_launch_counts{category='successes', source_cluster='stone-stg-p01'}"
+        values: "10 10 _ 10"
+      - series: "mintmaker_launch_counts{category='failures', source_cluster='stone-stg-p01'}"
+        values: "10 _ 10 10"
+    promql_expr_test:
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 0m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-p01'}
+            value: 0.5
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 10m
+        exp_samples:
+
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 20m
+        exp_samples:
+        
+      - expr: mintmaker_launch_failure_ratio
+        eval_time: 30m
+        exp_samples:
+          - labels: mintmaker_launch_failure_ratio{source_cluster='stone-stg-p01'}
+            value: 0.5
